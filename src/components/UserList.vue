@@ -23,9 +23,6 @@
 
       <el-row :gutter="20" class="grid">
         <el-col
-          :xs="24"
-          :sm="12"
-          :md="8"
           v-for="user in pageData"
           :key="user.account"
           class="user-col"
@@ -41,7 +38,7 @@
           background
           layout="prev, pager, next, sizes, total"
           :page-size="pageSize"
-          :current-page.sync="page"
+          v-model:current-page="page"
           :page-sizes="[4, 8, 12]"
           :total="total"
           @size-change="onSizeChange"
@@ -242,6 +239,10 @@ export default {
 .right {
   color: rgba(27, 31, 47, 0.6);
 }
+.pager {
+  margin-top: 24px;
+  text-align: center;
+}
 .loading-wrap {
   display: flex;
   align-items: center;
@@ -262,7 +263,7 @@ export default {
 }
 .grid {
   display: grid;
-  grid-template-columns: none;
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 .user-col {
@@ -275,42 +276,6 @@ export default {
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(27, 31, 47, 0.06);
   overflow: visible;
-}
-.card-body {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #e6f0ff;
-  color: #0f172a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  line-height: 56px;
-  font-size: 18px;
-  flex: none;
-}
-.info {
-  flex: 1;
-  min-width: 0;
-}
-.card .info {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.username {
-  font-weight: 600;
-  color: var(--text-900, #0f172a);
-}
-.email {
-  color: rgba(27, 31, 47, 0.55);
-  font-size: 13px;
 }
 .empty {
   padding: 18px;
