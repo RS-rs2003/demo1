@@ -2,28 +2,18 @@
   <div class="user-list-root">
     <el-row class="toolbar" align="middle" justify="space-between">
       <el-col>
-        <el-input
-          v-model="q"
-          placeholder="搜索用户、邮箱…"
-          clearable
-          style="width: 300px"
-        ></el-input>
+        <el-input v-model="q" placeholder="搜索用户、账号…" clearable style="width: 320px" />
         <el-button type="primary" :loading="loading" @click="fetchUsers" style="margin-left: 12px"
           >刷新</el-button
         >
       </el-col>
       <el-col>
-        <div class="right">共 {{ users.length }} 位用户</div>
+        <div class="right">共 {{ total }} 位用户</div>
       </el-col>
     </el-row>
 
     <div v-if="loading" class="loading-wrap">
-      <el-skeleton :rows="1" animated>
-        <template #template>
-          <el-skeleton-item variant="image" style="width: 40px; height: 40px; margin-right: 12px" />
-          <el-skeleton-item style="width: 120px" />
-        </template>
-      </el-skeleton>
+      <el-skeleton :rows="3" animated />
     </div>
 
     <div v-else-if="error" class="error">请求失败：{{ error }}</div>
@@ -32,10 +22,60 @@
       <div v-if="filtered.length === 0" class="empty muted">没有匹配的用户。</div>
 
       <el-row :gutter="20" class="grid">
-        <el-col :xs="24" :sm="12" :md="12" v-for="user in filtered" :key="user.email">
-          <UserCard :user="user" @click="selectUser(user)" />
+        <el-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+          v-for="user in pageData"
+          :key="user.account"
+          class="user-col"
+        >
+          <div class="card-wrapper" @click="selectUser(user)">
+            <UserCard :user="user" />
+          </div>
         </el-col>
       </el-row>
+
+      <div class="pager">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :page-size="pageSize"
+          :current-page.sync="page"
+          :page-sizes="[4, 8, 12]"
+          :total="total"
+          @size-change="onSizeChange"
+          @current-change="onPageChange"
+        />
+      </div>
+
+      <!-- 用户详情弹窗 -->
+      <el-dialog
+        v-model="dialogVisible"
+        title="用户详情"
+        width="520px"
+      >
+        <div class="detail-body" v-if="selectedUser">
+          <el-avatar size="96" class="large-avatar">{{
+            initials(selectedUser && selectedUser.name)
+          }}</el-avatar>
+          <div class="meta">
+            <h3>{{ selectedUser.name }}</h3>
+            <div class="email">账号: {{ selectedUser.account }}</div>
+            <div class="info">
+              年龄: {{ selectedUser.age }} · 性别:
+              {{ selectedUser.gender }} · 角色ID:
+              {{ selectedUser.role_id }}
+            </div>
+            <div class="info">
+              密码（仅示例）: {{ selectedUser.password }}
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="closeDialog">关闭</el-button>
+        </template>
+      </el-dialog>
     </div>
   </div>
 </template>
@@ -46,11 +86,20 @@ import UserCard from './UserCard.vue'
 
 export default {
   components: { UserCard },
-  setup() {
+  emits: ['show-user'],
+  setup(_, { emit }) {
     const users = ref([])
     const loading = ref(true)
     const error = ref(null)
     const q = ref('')
+
+    // 添加弹窗相关状态
+    const dialogVisible = ref(false)
+    const selectedUser = ref(null)
+
+    // pagination
+    const page = ref(1)
+    const pageSize = ref(4)
 
     async function fetchUsers() {
       loading.value = true
@@ -63,7 +112,6 @@ export default {
         const res = await fetch(url, { headers })
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
         const data = await res.json()
-        // handle both plain array responses and wrapped responses like { data: [...] }
         const list = Array.isArray(data) ? data : Array.isArray(data.data) ? data.data : []
         users.value = list
       } catch (e) {
@@ -79,15 +127,31 @@ export default {
     const filtered = computed(() => {
       const term = q.value.trim().toLowerCase()
       if (!term) return users.value
-      return users.value.filter(
-        (u) =>
-          (u.username || '').toLowerCase().includes(term) ||
-          (u.email || '').toLowerCase().includes(term),
-      )
+      return users.value.filter((u) => {
+        const name = (u.name || '').toLowerCase()
+        const account = (u.account || '').toLowerCase()
+        return name.includes(term) || account.includes(term)
+      })
     })
 
+    const total = computed(() => filtered.value.length)
+
+    const pageData = computed(() => {
+      const start = (page.value - 1) * pageSize.value
+      return filtered.value.slice(start, start + pageSize.value)
+    })
+
+    function onPageChange(p) {
+      page.value = p
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    function onSizeChange(s) {
+      pageSize.value = s
+      page.value = 1
+    }
+
     function initials(name = '') {
-      return name
+      return (name || '')
         .split(' ')
         .map((s) => s[0])
         .join('')
@@ -96,15 +160,41 @@ export default {
     }
 
     function selectUser(user) {
-      // emit selected user for parent to open detail
-      // use $emit via this not available in setup return, so we'll use CustomEvent on root element
-      const ev = new CustomEvent('show-user', { detail: user })
-      window.dispatchEvent(ev)
+      console.log('UserList: selectUser', user)
+      selectedUser.value = user
+      dialogVisible.value = true
+      emit('show-user', user)
+      try {
+        const ev = new CustomEvent('show-user', { detail: user })
+        window.dispatchEvent(ev)
+      } catch (e) {}
     }
 
-    return { users, loading, error, q, filtered, fetchUsers, initials, selectUser }
+    function closeDialog() {
+      dialogVisible.value = false
+      selectedUser.value = null
+    }
+
+    return {
+      users,
+      loading,
+      error,
+      q,
+      filtered,
+      fetchUsers,
+      initials,
+      selectUser,
+      page,
+      pageSize,
+      pageData,
+      total,
+      onPageChange,
+      onSizeChange,
+      dialogVisible,
+      selectedUser,
+      closeDialog
+    }
   },
-  components: { UserCard },
 }
 </script>
 
@@ -172,11 +262,11 @@ export default {
 }
 .grid {
   display: grid;
-  /* increase minimum column width so cards are wider */
-  /* wider cards so each card has more horizontal space */
-  /* using el-row/col layout now — keep grid styles simple */
   grid-template-columns: none;
   gap: 20px;
+}
+.user-col {
+  cursor: pointer;
 }
 .card {
   display: block;
@@ -225,4 +315,22 @@ export default {
 .empty {
   padding: 18px;
 }
+.detail-body {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding-top: 12px;
+}
+.large-avatar {
+  background: #e6f0ff;
+  color: #0f172a;
+}
+.meta h3 {
+  margin: 0;
+}
+.info {
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.45);
+}
 </style>
+*** End Patch

@@ -1,15 +1,15 @@
 <template>
-  <el-card class="user-card" shadow="hover" @click="onClick">
+  <el-card class="user-card" shadow="hover">
     <div class="user-card-inner">
-      <el-avatar size="64" class="avatar">{{ initials(user.username) }}</el-avatar>
+      <el-avatar size="64" class="avatar">{{ initials(user.name) }}</el-avatar>
       <div class="content">
         <div class="title-row">
-          <div class="username">{{ user.username }}</div>
-          <el-tag type="info" size="small" v-if="user.email">{{ user.email }}</el-tag>
+          <div class="username">{{ user.name }}</div>
+          <el-tag type="info" size="small" v-if="user.account">{{ user.account }}</el-tag>
         </div>
 
         <el-descriptions size="small" column="1" class="desc">
-          <el-descriptions-item label="邮箱">{{ user.email }}</el-descriptions-item>
+          <el-descriptions-item label="账号">{{ user.account }}</el-descriptions-item>
           <el-descriptions-item label="密码">{{ user.password }}</el-descriptions-item>
         </el-descriptions>
       </div>
@@ -21,15 +21,11 @@
 export default {
   name: 'UserCard',
   props: { user: { type: Object, required: true } },
-  emits: ['click'],
-  setup(props, { emit }) {
+  setup(props) {
     function initials(name = '') {
       return (name || '').slice(0, 2).toUpperCase()
     }
-    function onClick() {
-      emit('click')
-    }
-    return { initials, onClick }
+    return { initials }
   },
 }
 </script>

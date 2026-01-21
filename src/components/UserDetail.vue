@@ -1,31 +1,55 @@
 <template>
-  <div class="user-detail">
-    <el-card>
-      <div class="header">
-        <el-button type="text" @click="$emit('back')">← 返回</el-button>
-        <div style="flex: 1"></div>
-      </div>
-
+  <el-dialog
+    v-model="dialogVisible"
+    title="用户详情"
+    width="520px"
+  >
+    <template #default>
       <div class="detail-body">
-        <el-avatar size="96" class="large-avatar">{{ initials(user.username) }}</el-avatar>
+        <el-avatar size="96" class="large-avatar">{{ initials(user && user.name) }}</el-avatar>
         <div class="meta">
-          <h3>{{ user.username }}</h3>
-          <div class="email">{{ user.email }}</div>
-          <div class="info">密码（仅示例）: {{ user.password }}</div>
+          <h3>{{ user ? user.name : '' }}</h3>
+          <div class="email">账号: {{ user ? user.account : '' }}</div>
+          <div class="info">
+            年龄: {{ user ? user.age : '' }} · 性别: {{ user ? user.gender : '' }} · 角色ID:
+            {{ user ? user.role_id : '' }}
+          </div>
+          <div class="info">密码（仅示例）: {{ user ? user.password : '' }}</div>
         </div>
       </div>
-    </el-card>
-  </div>
+    </template>
+    <template #footer>
+      <el-button @click="closeDialog">关闭</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script>
+import { computed } from 'vue'
+
 export default {
-  props: { user: { type: Object, required: true } },
-  setup(props) {
+  name: 'UserDetail',
+  props: {
+    user: { type: Object, default: null },
+    modelValue: { type: Boolean, default: false },  // 使用modelValue替代visible
+  },
+  emits: ['update:modelValue', 'close'],
+  setup(props, { emit }) {
     function initials(name = '') {
-      return name.slice(0, 2).toUpperCase()
+      return (name || '').slice(0, 2).toUpperCase()
     }
-    return { initials }
+    
+    const dialogVisible = computed({
+      get: () => props.modelValue,
+      set: (value) => emit('update:modelValue', value)
+    });
+    
+    function closeDialog() {
+      emit('update:modelValue', false);
+      emit('close');
+    }
+    
+    return { initials, closeDialog, dialogVisible };
   },
 }
 </script>
@@ -51,10 +75,5 @@ export default {
 .info {
   margin-top: 8px;
   color: rgba(0, 0, 0, 0.45);
-}
-.header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 6px;
 }
 </style>

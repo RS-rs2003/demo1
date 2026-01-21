@@ -4,7 +4,7 @@
 
     <div v-else class="app-shell">
       <aside class="side">
-        <div class="logo">MyAdmin</div>
+        <div class="logo">亲友blog平台</div>
         <el-menu :default-active="active" @select="onSelect" class="menu" router="{false}">
           <el-menu-item index="home">首页</el-menu-item>
           <el-menu-item index="share">分享</el-menu-item>
@@ -17,18 +17,13 @@
         <header class="topbar">
           <h2>{{ title }}</h2>
           <div style="float: right; display: flex; align-items: center; gap: 12px">
-            <div v-if="currentUser">你好，{{ currentUser.username }}</div>
+            <div v-if="currentUser">你好，{{ currentUser.name }}</div>
             <el-button type="text" @click="logout">登出</el-button>
           </div>
         </header>
 
         <section class="content">
-          <component
-            :is="currentComponent"
-            :user="selectedUser"
-            @show-user="openUser"
-            @back="closeUser"
-          />
+          <component :is="currentComponent" @show-user="openUser" />
         </section>
       </main>
     </div>
@@ -42,7 +37,6 @@ import Home from './components/Home.vue'
 import Share from './components/Share.vue'
 import Album from './components/Album.vue'
 import Placeholder from './components/Placeholder.vue'
-import UserDetail from './components/UserDetail.vue'
 import Login from './components/Login.vue'
 
 export default {
@@ -57,13 +51,13 @@ export default {
     }
 
     const selectedUser = ref(null)
+    const selectedUserDialogVisible = ref(false)
     const currentUser = ref(
       localStorage.getItem('authUser') ? JSON.parse(localStorage.getItem('authUser')) : null,
     )
     const isAuthenticated = ref(!!currentUser.value)
 
     const currentComponent = computed(() => {
-      if (selectedUser.value) return UserDetail
       if (active.value === 'home') return Home
       if (active.value === 'share') return Share
       if (active.value === 'album') return Album
@@ -71,19 +65,24 @@ export default {
     })
 
     const title = computed(() =>
-      selectedUser.value ? '用户详情' : (map[active.value] && map[active.value].title) || '',
+      map[active.value] && map[active.value].title ? map[active.value].title : '',
     )
 
     function onSelect(key) {
       active.value = key
+      // 切换菜单时关闭用户详情对话框
+      closeUser()
     }
 
     function openUser(user) {
+      console.log('App.openUser received:', user)
       selectedUser.value = user
+      selectedUserDialogVisible.value = true
     }
 
     function closeUser() {
       selectedUser.value = null
+      selectedUserDialogVisible.value = false
     }
 
     function onLogin(user) {
